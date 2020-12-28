@@ -14,6 +14,7 @@ from utils.general import check_img_size, non_max_suppression, apply_classifier,
 from utils.plots import plot_one_box
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 
+vid_writer = None
 
 def detect(save_img=False):
     source, weights, view_img, save_txt, imgsz = opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
@@ -42,9 +43,10 @@ def detect(save_img=False):
         modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
 
     # Set Dataloader
-    vid_path, vid_writer = None, None
+    vid_path = None
+    global vid_writer
     if webcam:
-        view_img = True
+        save_img = True
         cudnn.benchmark = True  # set True to speed up constant image size inference
         dataset = LoadStreams(source, img_size=imgsz)
     else:
@@ -125,15 +127,16 @@ def detect(save_img=False):
                 if dataset.mode == 'image':
                     cv2.imwrite(save_path, im0)
                 else:  # 'video'
+                    save_path = '/usr/src/app/output.mp4'
                     if vid_path != save_path:  # new video
                         vid_path = save_path
                         if isinstance(vid_writer, cv2.VideoWriter):
                             vid_writer.release()  # release previous video writer
 
                         fourcc = 'mp4v'  # output video codec
-                        fps = vid_cap.get(cv2.CAP_PROP_FPS)
-                        w = int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                        h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                        fps = 10#vid_cap.get(cv2.CAP_PROP_FPS)
+                        w = im0.shape[0]#int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                        h = im0.shape[1]#int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
                     vid_writer.write(im0)
 
@@ -165,10 +168,16 @@ if __name__ == '__main__':
     opt = parser.parse_args()
     print(opt)
 
-    with torch.no_grad():
-        if opt.update:  # update all models (to fix SourceChangeWarning)
-            for opt.weights in ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt']:
+    try:
+        with torch.no_grad():
+            if opt.update:  # update all models (to fix SourceChangeWarning)
+                for opt.weights in ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt']:
+                    detect()
+                    strip_optimizer(opt.weights)
+            else:
                 detect()
-                strip_optimizer(opt.weights)
-        else:
-            detect()
+    except KeyboardInterrupt:
+        print("Stopping...")
+    
+    #global vid_writer
+    vid_writer.release()
