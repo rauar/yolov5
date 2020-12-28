@@ -127,7 +127,7 @@ def detect(save_img=False):
                 if dataset.mode == 'image':
                     cv2.imwrite(save_path, im0)
                 else:  # 'video'
-                    save_path = '/usr/src/app/output.mp4'
+                    save_path = '/yolov5/output.mp4'
                     if vid_path != save_path:  # new video
                         vid_path = save_path
                         if isinstance(vid_writer, cv2.VideoWriter):
@@ -138,6 +138,8 @@ def detect(save_img=False):
                         w = im0.shape[0]#int(vid_cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                         h = im0.shape[1]#int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         vid_writer = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
+
+                    print("writing image to output stream...")    
                     vid_writer.write(im0)
 
     if save_txt or save_img:
@@ -180,4 +182,5 @@ if __name__ == '__main__':
         print("Stopping...")
     
     #global vid_writer
+    print("releasing video writer.")
     vid_writer.release()
